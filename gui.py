@@ -1,48 +1,70 @@
 import os
+import json
 import shutil
 import re
 import subprocess
+import tempfile
+from urllib.request import urlopen
 from utils import generate_output_filename
+
+# Application version
+__version__ = "0.1.3"
 
 # Qt imports with fallback
 try:
     from PySide6.QtWidgets import (
-        QApplication, QWidget, QFileDialog, QPushButton, QLabel,
+        QApplication, QMainWindow, QWidget, QFileDialog, QPushButton, QLabel,
         QLineEdit, QSlider, QProgressBar, QTextEdit,
-        QVBoxLayout, QHBoxLayout, QMessageBox, QGroupBox, QCheckBox, QSpacerItem, QSizePolicy
+        QVBoxLayout, QHBoxLayout, QMessageBox, QGroupBox, QCheckBox,
+        QSpacerItem, QSizePolicy, QAction
     )
     from PySide6.QtCore import Qt, QThread
     exec_attr = 'exec'
 except ImportError:
     try:
         from PySide2.QtWidgets import (
-            QApplication, QWidget, QFileDialog, QPushButton, QLabel,
+            QApplication, QMainWindow, QWidget, QFileDialog, QPushButton, QLabel,
             QLineEdit, QSlider, QProgressBar, QTextEdit,
-            QVBoxLayout, QHBoxLayout, QMessageBox, QGroupBox, QCheckBox, QSpacerItem, QSizePolicy
+            QVBoxLayout, QHBoxLayout, QMessageBox, QGroupBox, QCheckBox,
+            QSpacerItem, QSizePolicy, QAction
         )
         from PySide2.QtCore import Qt, QThread
         exec_attr = 'exec_'
     except ImportError:
         from PyQt5.QtWidgets import (
-            QApplication, QWidget, QFileDialog, QPushButton, QLabel,
+            QApplication, QMainWindow, QWidget, QFileDialog, QPushButton, QLabel,
             QLineEdit, QSlider, QProgressBar, QTextEdit,
-            QVBoxLayout, QHBoxLayout, QMessageBox, QGroupBox, QCheckBox, QSpacerItem, QSizePolicy
+            QVBoxLayout, QHBoxLayout, QMessageBox, QGroupBox, QCheckBox,
+            QSpacerItem, QSizePolicy, QAction
         )
         from PyQt5.QtCore import Qt, QThread
         exec_attr = 'exec_'
 
 from compressor import CompressWorker
 
-class PDFShrinkWindow(QWidget):
+class PDFShrinkWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PDFShrink")
+        self.setWindowTitle(f"PDFShrink v{__version__}")
         self.resize(650, 430)
-        self.main_layout = QVBoxLayout(self)
+
+        # Menu Bar
+        file_menu = self.menuBar().addMenu("File")
+        update_action = QAction("Check for Updates", self)
+        update_action.triggered.connect(self.open_releases_page)
+        file_menu.addAction(update_action)
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        # Central widget and layout
+        central = QWidget()
+        self.setCentralWidget(central)
+        self.main_layout = QVBoxLayout(central)
         self.main_layout.setSpacing(5)
         self.main_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Source PDF
+        # Source PDF Group
         src_group = QGroupBox("Source PDF")
         src_layout = QHBoxLayout()
         self.input_label = QLabel("No file selected.")
@@ -100,11 +122,8 @@ class PDFShrinkWindow(QWidget):
         action_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.main_layout.addLayout(action_layout)
 
-                # Dark Mode Toggle
-        self.dark_toggle = QCheckBox("Dark Mode")
-        self.dark_toggle.stateChanged.connect(self.toggle_dark_mode)
-
-        # Log Output (collapsible)
+        # Log and Dark Mode
+        bottom_layout = QHBoxLayout()
         self.log_group = QGroupBox("Log Output")
         self.log_group.setCheckable(True)
         self.log_group.setChecked(False)
@@ -115,13 +134,13 @@ class PDFShrinkWindow(QWidget):
         self.log_group.toggled.connect(self.log_edit.setVisible)
         lg_layout.addWidget(self.log_edit)
         self.log_group.setLayout(lg_layout)
-        self.main_layout.addWidget(self.log_group)
+        bottom_layout.addWidget(self.log_group)
 
-        # Dark Mode Toggle (aligned right)
-        toggle_layout = QHBoxLayout()
-        toggle_layout.addStretch()
-        toggle_layout.addWidget(self.dark_toggle)
-        self.main_layout.addLayout(toggle_layout)
+        bottom_layout.addItem(QSpacerItem(20, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.dark_toggle = QCheckBox("Dark Mode")
+        self.dark_toggle.stateChanged.connect(self.toggle_dark_mode)
+        bottom_layout.addWidget(self.dark_toggle)
+        self.main_layout.addLayout(bottom_layout)
 
         # Worker/Thread refs
         self.worker = None
@@ -129,6 +148,10 @@ class PDFShrinkWindow(QWidget):
 
     def update_quality_label(self, value):
         self.quality_label.setText(str(value))
+
+    def open_releases_page(self):
+        import webbrowser
+        webbrowser.open('https://github.com/Roehamn/PDFShrink/releases')
 
     def toggle_dark_mode(self, state):
         if state == Qt.Checked:
@@ -143,8 +166,7 @@ class PDFShrinkWindow(QWidget):
             self.setStyleSheet("")
 
     def select_file(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select PDF", "", "PDF Files (*.pdf)")
+        path, _ = QFileDialog.getOpenFileName(self, "Select PDF", "", "PDF Files (*.pdf)")
         if path:
             self.input_path = path
             base = os.path.basename(path)
@@ -193,3 +215,5 @@ class PDFShrinkWindow(QWidget):
             QMessageBox.information(self, "Success", f"Saved to:\n{output_file}")
         else:
             QMessageBox.critical(self, "Failure", "Compression failed. See log for details.")
+
+# Entry point
