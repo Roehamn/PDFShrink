@@ -3,12 +3,15 @@ My attempt at creating an interface that uses ghostscript/qpdf/orcmypdf to shrin
 
 
 
-Honestly this is only possible with chatgpt holding my hand pretty hard, but I really want to make this because for some reason it's impossible to find a decent tool to shrink a pdf that isn't locked behind a paywall
-pdf's are simple. I don't believe it should cost money to do a simple task like shrink.   
+Honestly this is only possible with chatgpt holding my hand pretty hard, but I really want to make this because for some reason it's impossible to find a decent tool to shrink a pdf that isn't locked behind a paywall and/or the app is needlessly complex   
 
 
 
-maybe later I'll try do like a reorder page thing
-we'll see, maybe I can't even do this 🤷‍♂️
-
-HERE GOES!!!!!1
+What I'd like to add:
+-Windows compatibility/release
+-Better dependency checks
+-Auto updater
+-Reorder pdf pages
+-merge pdfs
+-is upscale possible? hmmm....
+-python alternative? (I'm probably too dumb for anything else, so why not java?)
