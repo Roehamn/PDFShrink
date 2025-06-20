@@ -8,10 +8,18 @@ Honestly this is only possible with chatgpt holding my hand pretty hard, but I r
 
 
 What I'd like to add:
+
+
 -Windows compatibility/release
+
 -Better dependency checks
+
 -Auto updater
+
 -Reorder pdf pages
+
 -merge pdfs
+
 -is upscale possible? hmmm....
+
 -python alternative? (I'm probably too dumb for anything else, so why not java?)
